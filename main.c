@@ -112,19 +112,6 @@ int openFormForWrite(int form_number, form form) {
     return 0;
 }
 
-int getFormsCount() {
-    char BUFFER[1024];
-    int my_file;
-    my_file = open("forms.bin", O_RDWR | O_CREAT, 0);
-    int file_length = read(my_file, BUFFER, 1024);
-    if (file_length == -1) {
-        printf("Какая-то странная ошибка...\n");
-        return -1;
-    }
-    close(my_file);
-    return file_length / sizeof(form);
-}
-
 int getOperationIndex() {
     printf("Введите номер операции, которую хотели бы выполнить:\n");
     printf("1. Чтение анкеты;\n");
@@ -144,16 +131,12 @@ int getFormIndex() {
 }
 
 int main() {
-    int forms_count = getFormsCount();
-    if (forms_count < 0) {
-        return -1;
-    }
     char flag = 0;
 
     while (1) {
         int form_index = getFormIndex();
-        if (form_index < 0 || form_index > forms_count) {
-            printf("Пожалуйста, введите номер анкеты между 1 и %d\n", forms_count);
+        if (form_index < 0) {
+            printf("Нет анкеты с таким номером");
             continue;
         }
 
@@ -171,8 +154,7 @@ int main() {
             }
             case 2: {
                 form f = {};
-                forms_count += 1;
-                int write_result = openFormForWrite(forms_count, f);
+                int write_result = openFormForWrite(form_index, f);
                 if (write_result == 1) {
                     printf("Не удалось открыть файл с анкетами для записи\n");
                 } else if (write_result == 2) {
