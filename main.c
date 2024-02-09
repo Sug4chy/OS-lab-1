@@ -136,7 +136,7 @@ int main() {
     while (1) {
         int form_index = getFormIndex();
         if (form_index < 0) {
-            printf("Нет анкеты с таким номером");
+            printf("Нет анкеты с таким номером\n");
             continue;
         }
 
