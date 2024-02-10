@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 typedef struct form {
     char name[30];
@@ -22,14 +23,16 @@ int openFormForRead(int form_number) {
     int my_file;
     struct flock fl;
     form f;
-    my_file = open("forms.bin", O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IROTH);
+    char file_name[9];
+    sprintf(file_name, "%s%d%s", "form", form_number, ".bin");
+    my_file = open(file_name, O_RDWR, S_IRWXU | S_IRGRP | S_IROTH);
     if (my_file == -1) {
-        printf("%s", strerror(errno));
+        printf("%s\n", strerror(errno));
         return 1;
     }
 
     memset(&fl, 0, sizeof(fl));
-    setFlockState(&fl, F_RDLCK, SEEK_SET, sizeof(form) * form_number,
+    setFlockState(&fl, F_RDLCK, SEEK_SET, 0,
                   sizeof(form));
     fcntl(my_file, F_GETLK, &fl);
     if (fl.l_type != F_UNLCK) {
@@ -41,8 +44,7 @@ int openFormForRead(int form_number) {
 
     lseek(my_file, sizeof(form) * form_number, SEEK_SET);
     if (read(my_file, &f, sizeof(form)) == -1) {
-        printf("%d", fl.l_pid);
-        printf("%s", strerror(errno));
+        printf("%s\n", strerror(errno));
         return 2;
     }
     printf("Имя: %s\n", f.name);
@@ -59,25 +61,26 @@ int openFormForRead(int form_number) {
 int openFormForWrite(int form_number, form form) {
     int my_file;
     struct flock fl;
-    my_file = open("forms.bin", O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IROTH);
+    char *file_name;
+    sprintf(file_name, "%s%d%s", "form", form_number, ".bin");
+    my_file = open(file_name, O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IROTH);
     if (my_file == -1) {
-        printf("%s", strerror(errno));
+        printf("%s\n", strerror(errno));
         return 1;
     }
 
-    setFlockState(&fl, F_WRLCK, SEEK_SET, sizeof(form) * form_number,
+    setFlockState(&fl, F_WRLCK, SEEK_SET, 0,
                   sizeof(form));
     fcntl(my_file, F_GETLK, &fl);
     if (fl.l_type != F_UNLCK) {
-        printf("Анкета сейчас заблокирована, ждём...");
+        printf("Анкета сейчас заблокирована, ждём...\n");
         while (fl.l_type != F_UNLCK) {
             fcntl(my_file, F_GETLK, &fl);
         }
     }
 
     memset(&fl, 0, sizeof(fl));
-
-    setFlockState(&fl, F_WRLCK, SEEK_SET, sizeof(form) * form_number,
+    setFlockState(&fl, F_WRLCK, SEEK_SET, 0,
                   sizeof(form));
     fcntl(my_file, F_SETLK, &fl);
 
@@ -134,6 +137,7 @@ int main() {
     char flag = 0;
 
     while (1) {
+
         int form_index = getFormIndex();
         if (form_index < 0) {
             printf("Нет анкеты с таким номером\n");
