@@ -10,7 +10,7 @@ typedef struct form {
     char surname[30];
     int age;
     int workExpYears;
-} form;
+} form_type;
 
 void setFlockState(struct flock *fl, short l_type, short l_whence, __off_t l_start, __off_t l_len) {
     fl->l_type = l_type;
@@ -22,10 +22,8 @@ void setFlockState(struct flock *fl, short l_type, short l_whence, __off_t l_sta
 int openFormForRead(int form_number) {
     int my_file;
     struct flock fl;
-    form f;
-    char file_name[9];
-    sprintf(file_name, "%s%d%s", "form", form_number, ".bin");
-    my_file = open(file_name, O_RDWR, S_IRWXU | S_IRGRP | S_IROTH);
+    form_type f;
+    my_file = open("forms.bin", O_RDWR, S_IRWXU | S_IRGRP | S_IROTH);
     if (my_file == -1) {
         printf("%s\n", strerror(errno));
         return 1;
@@ -33,7 +31,7 @@ int openFormForRead(int form_number) {
 
     memset(&fl, 0, sizeof(fl));
     setFlockState(&fl, F_RDLCK, SEEK_SET, 0,
-                  sizeof(form));
+                  sizeof(form_type));
     fcntl(my_file, F_GETLK, &fl);
     if (fl.l_type != F_UNLCK) {
         printf("Анкета сейчас заблокирована, ждём...\n");
@@ -42,8 +40,8 @@ int openFormForRead(int form_number) {
         }
     }
 
-    lseek(my_file, sizeof(form) * form_number, SEEK_SET);
-    if (read(my_file, &f, sizeof(form)) == -1) {
+    lseek(my_file, sizeof(form_type) * form_number, SEEK_SET);
+    if (read(my_file, &f, sizeof(form_type)) == -1) {
         printf("%s\n", strerror(errno));
         return 2;
     }
@@ -58,12 +56,10 @@ int openFormForRead(int form_number) {
     return 0;
 }
 
-int openFormForWrite(int form_number, form form) {
+int openFormForWrite(int form_number, form_type form) {
     int my_file;
     struct flock fl;
-    char *file_name;
-    sprintf(file_name, "%s%d%s", "form", form_number, ".bin");
-    my_file = open(file_name, O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IROTH);
+    my_file = open("forms.bin", O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IROTH);
     if (my_file == -1) {
         printf("%s\n", strerror(errno));
         return 1;
@@ -104,6 +100,7 @@ int openFormForWrite(int form_number, form form) {
     scanf("%d", &workExpYears);
     form.workExpYears = workExpYears;
 
+    lseek(my_file, sizeof(form_type) * form_number, SEEK_SET);
     if (write(my_file, &form, sizeof(form)) == -1) {
         printf("%s", strerror(errno));
         return 2;
@@ -157,7 +154,7 @@ int main() {
                 break;
             }
             case 2: {
-                form f = {};
+                form_type f = {};
                 int write_result = openFormForWrite(form_index, f);
                 if (write_result == 1) {
                     printf("Не удалось открыть файл с анкетами для записи\n");
@@ -167,7 +164,7 @@ int main() {
                 break;
             }
             case 3: {
-                form f = {};
+                form_type f = {};
                 int write_result = openFormForWrite(form_index, f);
                 if (write_result == 1) {
                     printf("Не удалось открыть файл с анкетами для записи\n");
