@@ -32,14 +32,8 @@ int openFormForRead(int form_number) {
     memset(&fl, 0, sizeof(fl));
     setFlockState(&fl, F_RDLCK, SEEK_SET, 0,
                   sizeof(form_type));
-    fcntl(my_file, F_GETLK, &fl);
-    if (fl.l_type != F_UNLCK) {
-        printf("Анкета сейчас заблокирована, ждём...\n");
-        while (fl.l_type != F_UNLCK) {
-            fcntl(my_file, F_GETLK, &fl);
-        }
-    }
 
+    fcntl(my_file, F_SETLKW, &fl);
     lseek(my_file, sizeof(form_type) * form_number, SEEK_SET);
     if (read(my_file, &f, sizeof(form_type)) == -1) {
         printf("%s\n", strerror(errno));
@@ -67,18 +61,7 @@ int openFormForWrite(int form_number, form_type form) {
 
     setFlockState(&fl, F_WRLCK, SEEK_SET, 0,
                   sizeof(form));
-    fcntl(my_file, F_GETLK, &fl);
-    if (fl.l_type != F_UNLCK) {
-        printf("Анкета сейчас заблокирована, ждём...\n");
-        while (fl.l_type != F_UNLCK) {
-            fcntl(my_file, F_GETLK, &fl);
-        }
-    }
-
-    memset(&fl, 0, sizeof(fl));
-    setFlockState(&fl, F_WRLCK, SEEK_SET, 0,
-                  sizeof(form));
-    fcntl(my_file, F_SETLK, &fl);
+    fcntl(my_file, F_SETLKW, &fl);
 
     char name[30];
     printf("Введите ваше имя: ");
@@ -124,7 +107,7 @@ int getOperationIndex() {
 }
 
 int getFormIndex() {
-    printf("Введите номер анкеты, над которой будете производить операции:");
+    printf("Введите номер анкеты, над которой будете производить операции: ");
     int formIndex;
     scanf("%d[^\n]", &formIndex);
     return formIndex - 1;
